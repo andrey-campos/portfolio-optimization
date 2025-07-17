@@ -1,18 +1,16 @@
 # Portfolio Optimization Tool
 
-A robust Python library for modern portfolio optimization and analysis with advanced algorithm implementations and computer vision integration.
+A robust Python library for modern portfolio optimization and analysis with advanced algorithm implementations and CSV ticker extraction.
 
 ## Features
 
 - **Multiple Optimization Strategies**
  - Sharpe Ratio Maximization
- - Robust Optimization (accounts for uncertainty in return estimates)
- - Quantum Algorithm for Portfolio Optimization (QAOA simulation)
+ - Monte Carlo Based Simulations 
 
-- **Computer Vision Integration (soon)** 
- - Extract ticker symbols from financial documents and sector reports
- - Process financial charts to identify sector allocations
- - Convert visual data into structured portfolio inputs
+- **CSV Ticker extraction** 
+ - Extracts ticker symbols from CSVS for historical stock data to be able to be downloaded 
+ - Expects CSVs in format of `sector,ticker,company_name`
 
 - **Comprehensive Analysis**
  - Statistical analysis of portfolio performance metrics
@@ -35,7 +33,9 @@ pip install -r requirements.txt
 from portfolio_optimizer import Portfolio
 
 # Initialize portfolio with default settings
-portfolio = Portfolio(num_stocks=5, start_date="2022-08-08", end_date="2023-08-12")
+portfolio = Portfolio(
+    num_stocks=5, start_date="2022-08-08", end_date="2023-08-12"
+)
 
 # Process portfolio data and run optimization
 results = portfolio.process_portfolio()
@@ -86,8 +86,10 @@ print(sharpe_optimizer)
 # print new variance through dot notation 
 print(sharpe_results.variance)
 
-# Using robust optimization
-# implementation soon..
+# shows portfolio simulation runs plotted
+mc_optimizer = MCOptimization(portfolio)
+portfolio_paths = mc_optimizer.mc_simulation()
+mc_optimizer.efficient_frontier(n_portfolios=100)
 ```
 
 ## Contributing 

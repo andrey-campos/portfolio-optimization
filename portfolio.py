@@ -615,43 +615,21 @@ class Portfolio():
 
 # --- main script example usage ---
 if __name__ == "__main__":
-    import time
-    
-    print("=== PERFORMANCE TEST ===")
-    start_time = time.time()
-    
-    # Initialize portfolio (this will still take some time for data download)
-    print("1. Initializing portfolio...")
-    init_start = time.time()
-    portfolio = Portfolio(
-        num_stocks=2, 
-        start_date="2022-08-08", 
-        end_date="2023-08-12", 
-        precompute=False  # Don't precompute everything
-    )
-    init_time = time.time() - init_start
-    print(f"    Portfolio initialization: {init_time:.2f} seconds")
-    
-    # Only compute what's needed for efficient frontier
-    print("2. Setting up MC optimizer...")
-    mc_start = time.time()
+    portfolio = Portfolio(num_stocks=2, start_date="2022-08-08", end_date="2023-08-12", precompute=False) 
+
+    print(f"Expected returns of non-optimized portfolio and total return: {portfolio.expected_returns()}")
+    print(f"Old Portfolio's variance and volatility: {portfolio.variance_and_volatility()}")
+
     mc_optimizer = MCOptimization(portfolio)
-    
-    print("3. Running efficient frontier...")
-    mc_optimizer.efficient_frontier(n_portfolios=1000)
-    
-    mc_time = time.time() - mc_start
-    total_time = time.time() - start_time
-    
-    print(f"   MC setup + efficient frontier: {mc_time:.2f} seconds")
-    print(f"   Total runtime: {total_time:.2f} seconds")
+    portfolio_paths = mc_optimizer.mc_simulation()
+    mc_optimizer.efficient_frontier(n_portfolios=100)
 
     # example usage with sharpe optimization
-    # sharpe_optimizer = SharpeOptimization(portfolio)
-    # results = sharpe_optimizer.get_optimized_portfolio()
+    sharpe_optimizer = SharpeOptimization(portfolio)
+    results = sharpe_optimizer.get_optimized_portfolio()
 
-    # print(f"\nComplete Optimized Portfolio:\n{sharpe_optimizer}")
-    # print(f"Optimized Portfolio new sharpe ratio: {results.optimized_sharpe}")
+    print(f"\nComplete Optimized Portfolio:\n{sharpe_optimizer}")
+    print(f"Optimized Portfolio new sharpe ratio: {results.optimized_sharpe}")
 
 
 
