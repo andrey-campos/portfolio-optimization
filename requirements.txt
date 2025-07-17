@@ -29,3 +29,7 @@ typing_extensions==4.12.2
 tzdata==2025.2
 urllib3==2.3.0
 yfinance==0.2.55
+curl-cffi==0.11.4
+streamlit==1.46.1
+plotly==6.2.0
+watchdog==6.0.0

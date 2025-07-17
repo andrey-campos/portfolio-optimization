@@ -1,19 +1,20 @@
 import numpy as np
-from typing import Tuple
+import seaborn as sns
+import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 from scipy.stats import entropy
 from collections import namedtuple
 
 class SharpeOptimization:
     def __init__(self, portfolio):
-        """Initialize with by getting all of the Portfolio's class
-        attributes through composition."""
+        """
+        Initialize by getting all of the Portfolio's class
+        attributes through composition
+        """
         self.portfolio = portfolio
 
-        # lazy checker to avoid recomputing results
+        # lazy checker to avoid recomputation and cached results 
         self._optimized = False
-
-        # cached recomputation results
         self._optimization_results = None
 
     def sharpe_ratio(self, weights, negative_sharpe=False) -> float:
@@ -97,7 +98,8 @@ class SharpeOptimization:
         # create the data structure to store results
         SharpePortfolio = namedtuple("SharpePortfolio", 
                                      ["portfolio", "expected_return", "variance", 
-                                      "volatility", "initial_sharpe", "optimized_sharpe"])
+                                      "volatility", "initial_sharpe", "optimized_sharpe",
+                                      "weights"])
         
         self._optimization_results = SharpePortfolio(
             portfolio=optimized_portfolio,
@@ -106,8 +108,9 @@ class SharpeOptimization:
             volatility=new_volatility.item(),
             initial_sharpe=initial_sharpe,
 
-            # gets optimized sharp from minimization object
-            optimized_sharpe=abs(optimized_result.fun)
+            # gets optimized sharpe from minimization object and weights
+            optimized_sharpe=abs(optimized_result.fun),
+            weights=optimized_result.x
         )
         
         # mark as optimized
@@ -130,4 +133,6 @@ class SharpeOptimization:
     def __len__(self):
         return len(self._optimization_results)
     
+
+
 
