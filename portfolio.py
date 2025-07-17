@@ -129,13 +129,33 @@ class Portfolio():
             if self.using_st:
                 from curl_cffi import requests
                 session = requests.Session(impersonate="chrome")
+
+                # add session headers and small pause to avoid yf request rate limiting 
+                session.headers.update({
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none',
+                'Cache-Control': 'max-age=0',
+                })
+            
+                # add delays to appear more human-like
+                import time
+                time.sleep(3)  
+
                 stock_data = yf.download(
                     tickers=stocks, 
                     session=session, 
                     start=self.start_date, 
                     end=self.end_date, 
                     auto_adjust=True,
-                    progress=True
+                    progress=False,
+                    threads=False,
                 )["Close"]
 
                 session.close()
