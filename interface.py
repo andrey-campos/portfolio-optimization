@@ -85,7 +85,7 @@ def sector_color_palette() -> dict[str]:
 
 # header and intro to page
 st.title("📊 Welcome to the Portfolio Optimization Engine.")
-st.markdown("### Upload a photo of the data you want to use for your portfolio " \
+st.markdown("### Enter a csv of tickers you want to use for your portfolio " \
 "so we can extract tickers for your optimization strategy!")
 
 # --- ticker extraction tool: give user option between testing data or their own CSV formatted data ---
