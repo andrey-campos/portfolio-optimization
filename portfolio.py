@@ -132,11 +132,13 @@ class Portfolio():
         try:
             if self.using_st:
                 try:
-                    load_dotenv()
                     import streamlit as st
                     TD_KEY = st.secrets["TD_KEY"]
-                except:
+
+                except Exception as e:
+                    load_dotenv()
                     TD_KEY = os.getenv("TD_KEY")
+                    print(f"Failed to use streamlit secrets, error caused by: {e}")
 
                 td = TDClient(apikey=TD_KEY)
 
