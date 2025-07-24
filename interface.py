@@ -155,7 +155,6 @@ st.markdown("""
 unsafe_allow_html=True)
 
 # show user useful metrics and results of portfolio optimization
-
 col1, col2 = st.columns(2)
 with col1:
     st.markdown("#### 🪙 Market Overview For Selected Tickers")
@@ -186,20 +185,20 @@ if optimized and not st.session_state.portfolio_created:
                 using_st=True
             )
             
-            # check if portfolio has data
+            # check if portfolio has stock data downloaded 
             has_data = any(not df.empty for df in portfolio.portfolio.values())
 
             if has_data:
                 st.session_state.portfolio = portfolio
                 st.session_state.portfolio_created = True
                 st.success("Portfolio created successfully.")
+                
             else:
-                st.error("No data was downloaded. This was likely due to Yahoo Finance's rate limit for downloading data..")
+                raise Exception
 
-
-        except Exception as e:
+        except (Exception, ValueError) as e:
             st.error(f"Couldn't create portfolio: {str(e)}")
-            st.info(f"This is likely due to the Yahoo Finance rate limit for downloading data.. Waiting lasts around 1-5 minutes.")
+            st.info(f"This is likely due to the rate limit for downloading data.. Waiting lasts around 1-5 minutes.")
 
 
 # get portfolio instance from memory -> check if it has been made -> get attributes from instance to display

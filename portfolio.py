@@ -1,17 +1,21 @@
-import copy
+import os
 import numpy as np
 import pandas as pd
 import yfinance as yf
-import matplotlib.pyplot as plt
 import seaborn as sns
+from twelvedata import TDClient
+import matplotlib.pyplot as plt
+
 from typing import Tuple
 from collections import namedtuple
+from dotenv import load_dotenv
 from data_retriever import *
 from decimal import Decimal, getcontext
 
 # optimization strategies usable for the portfolio
 from strategies.sharpe import SharpeOptimization
 from strategies.mc_simulation import MCOptimization
+
 
 class Portfolio():
     def __init__(self, num_stocks: int, start_date: str, end_date: str, # required parameters for user
@@ -121,59 +125,58 @@ class Portfolio():
             Dictionary containing preprocessed stock data organized by sector.
         """
 
-        # Create a new list containing each stock, where stocks comes from sectors.values(), and stock comes from each stocks list
+        # list of ticker symbols
         stocks = [stock for stocks in sectors.values() for stock in stocks]
+        
+        # avoid rate limiting from YF using TwelveData API
         try:
-            # replicate browser TLS fingerprint to avoid yf request limiting 
-            # found solution: https://github.com/ranaroussi/yfinance/issues/2422
             if self.using_st:
+                try:
+                    load_dotenv()
+                    import streamlit as st
+                    TD_KEY = st.secrets["TD_KEY"]
+                except:
+                    TD_KEY = os.getenv("TD_KEY")
+
+                td = TDClient(apikey=TD_KEY)
+
+                # done to avoid each stock download to be counted as an individual request
+                symbols_string = ",".join(stocks) 
+
+                # download data from td api client then extract closing prices
+                td_data = td.time_series(
+                    symbol=symbols_string,
+                    interval="1day",
+                    start_date=self.start_date,
+                    end_date=self.end_date
+                ).as_pandas()
+                close_data = td_data["close"].astype(float)
+
+                # organize td data to be like yf data: organized df by oldest date to newest
+                stock_data = close_data.unstack(level=0)
+                stock_data = stock_data.sort_index()
+
+            # replicate browser TLS fingerprint to avoid yf request limiting (not for streamlit)
+            # found solution: https://github.com/ranaroussi/yfinance/issues/2422
+            else:
                 from curl_cffi import requests
                 session = requests.Session(impersonate="chrome")
 
-                # add session headers and small pause to avoid yf request rate limiting 
-                session.headers.update({
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Cache-Control': 'max-age=0',
-                })
-            
-                # add delays to appear more human-like
-                import time
-                time.sleep(3)  
-
                 stock_data = yf.download(
                     tickers=stocks, 
-                    session=session, 
-                    start=self.start_date, 
-                    end=self.end_date, 
-                    auto_adjust=True,
-                    progress=False,
-                    threads=False,
-                )["Close"]
-
-                session.close()
-
-            else:
-                stock_data = yf.download(
-                    tickers=stocks, 
+                    session=session,
                     start=self.start_date,
                     end=self.end_date, 
                     auto_adjust=True,
                     progress=True
                 )["Close"]
 
+                session.close()
 
-            if (len(stocks) - len(stock_data.columns)) != 0:
+            if stock_data.empty: 
                 print(f"Missing stock data inside data")
-                return stock_data 
-            
+                raise ValueError("No stock data downloaded")
+
             else:
                 print(f"All stock data downloaded successfully")
     
@@ -199,8 +202,8 @@ class Portfolio():
                     self.portfolio[portfolio_sector] = self.portfolio[portfolio_sector].ffill()
                 return self.portfolio
     
-        except AttributeError as error: 
-            print(f"Received {error} while retrieving historical stock data, please try again.")
+        except (AttributeError, ValueError) as e: 
+            print(f"Received {e} while retrieving historical stock data, please try again.")
 
 
     def diversify_sectors(self, 
@@ -259,7 +262,9 @@ class Portfolio():
         return self.portfolio
 
 
-    def historical_returns(self, want_historical_returns: bool=False) -> dict:
+    def historical_returns(self, 
+        want_historical_returns: bool=False
+        ) -> dict:
         """
         Calculate historical/daily returns from price data using percentage change. Return this
         as a new data structure separate from our regular `self.portfolio` instance.
@@ -399,7 +404,9 @@ class Portfolio():
         return expected_returns_portfolio, self.total_expected_return
     
 
-    def variance_and_volatility(self, force_recalculation: bool=False) -> Tuple[np.array, np.array]:
+    def variance_and_volatility(self, 
+        force_recalculation: bool=False
+        ) -> Tuple[np.array, np.array]:
         """
         calculate portfolio variance and volatility based on the covariance matrix from daily returns
 
@@ -437,7 +444,9 @@ class Portfolio():
         
 
     
-    def calculate_bounds(self, force_recalculation: bool=False) -> Tuple[tuple, list[float]]:
+    def calculate_bounds(self, 
+        force_recalculation: bool=False
+        ) -> Tuple[tuple, list[float]]:
         """
         Create bounds for optimization to constrain stock weights within specified limits by stacking 
         all returns dataframe in expected returns data structure vertically and getting all weights 
@@ -470,7 +479,9 @@ class Portfolio():
         return self._bounds, self._stock_weight
     
     
-    def process_portfolio(self, display_portfolios: bool=False) -> namedtuple:
+    def process_portfolio(self, 
+        display_portfolios: bool=False
+        ) -> namedtuple:
         """
         Function to perform all portfolio methods and store
         the results of said methods into lightweight 'PortfolioResult' data structure. 
@@ -520,9 +531,10 @@ class Portfolio():
 
     # --- Portfolio visualization methods ---
 
-    def asset_piechart(self, st: bool=False, show_one_sector: bool=False, 
-                       input_portfolio: dict=None, sector: bool=None,
-                        display_optim_weights=False, optim_weights=None
+    def asset_piechart(self, 
+        st: bool=False, show_one_sector: bool=False, 
+        input_portfolio: dict=None, sector: bool=None,
+        display_optim_weights=False, optim_weights=None
         ) -> plt:
         """
         ## Visualize asset allocation with pie charts.
@@ -572,7 +584,9 @@ class Portfolio():
             return fig 
     
     
-    def correlation_heatmap(self, input_portfolio: dict=None) -> plt:
+    def correlation_heatmap(self, 
+        input_portfolio: dict=None
+        ) -> plt:
         """
         ## Create correlation heatmaps for stocks in each sector.
         
@@ -592,7 +606,9 @@ class Portfolio():
             plt.show()
     
 
-    def correlation_heatmap_all_sectors(self, input_portfolio: dict=None) -> plt:
+    def correlation_heatmap_all_sectors(self, 
+        input_portfolio: dict=None
+        ) -> plt:
         """
         ## Create correlation heatmap for all sectors to display in Streamlit UI
 

@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 DATA_FILE_PATH = os.getenv("DATA_FILE_PATH")
 
-# --- ONLY for Andrey (main dev) with downloaded CSV with multiple stock choices.. --
+# --- ONLY for main dev with downloaded CSV with multiple stock choices.. --
 def retrieve_tickers_loaded_test() -> dict[list]:
     sectors = ["finance", "tech", "industrial", "energy"]
     sectors_tickers = {}
@@ -30,10 +30,10 @@ def retrieve_tickers_loaded_test() -> dict[list]:
 # alternative version of retrieve tickers (for any dev): used to reduce overhead during development..
 def retrieve_tickers_compact_test() -> dict[list]:
     return {
-        "finance": ["JPM", "BAC", "WFC"],
-        "tech": ["AAPL", "MSFT", "GOOGL"], 
-        "industrial": ["GE", "CAT", "BA"],
-        "energy": ["XOM", "CVX", "COP"]
+        "finance": ["JPM", "BAC"],
+        "tech": ["AAPL", "MSFT"], 
+        "industrial": ["GE", "CAT"],
+        "energy": ["XOM", "CVX"]
     }
 
 
@@ -102,7 +102,6 @@ def retrieve_tickers_streamlit(uploaded_file) -> dict[list]:
 
         return sector_tickers
 
-
     except pd.errors.EmptyDataError:
         raise ValueError("CSV file is empty.")
     
@@ -111,3 +110,4 @@ def retrieve_tickers_streamlit(uploaded_file) -> dict[list]:
     
     except Exception as e:
         raise Exception(f"Unexpected error processing CSV: {str(e)}")
+    
